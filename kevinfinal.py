@@ -24,20 +24,23 @@ robotName = "KevinBestBot"
 
 def play(botSocket, srvConf):
     gameNumber = 0  # The last game number bot got from the server (0 == no game has been started)
-
+    tempGetInfoReply = botSocket.sendRecvMessage({'type': 'getInfoRequest'})
     while True:
+       
         try:
             
             # Get information to determine if bot is alive (health > 0) and if a new game has started.
             getInfoReply = botSocket.sendRecvMessage({'type': 'getInfoRequest'})
-             #tempGetInfoReply = getInfoReply
+            
         except nbipc.NetBotSocketException as e:
             # We are always allowed to make getInfoRequests, even if our health == 0. Something serious has gone wrong.
             log(str(e), "FAILURE")
             log("Is netbot server still running?")
             quit()
-        # if tempGetInfoReply['health'] < getInfoReply['health']:
-            # print("hi")
+        if tempGetInfoReply['health'] > getInfoReply['health']:
+            moveDirection = random.uniform(0,math.pi * 2)
+            botSocket.sendRecvMessage({'type': 'setDirectionRequest', 'requestedDirection': moveDirection})
+            botSocket.sendRecvMessage({'type': 'setSpeedRequest', 'requestedSpeed': 30})
         if getInfoReply['health'] == 0:
             # we are dead, there is nothing we can do until we are alive again.
             continue
@@ -49,6 +52,7 @@ def play(botSocket, srvConf):
 
         currentMode = "wait"   
         try:
+            tempGetInfoReply = botSocket.sendRecvMessage({'type': 'getInfoRequest'})
             if currentMode == "wait":
                 getCanonReply = botSocket.sendRecvMessage({'type':'getCanonRequest'})
                 if not getCanonReply['shellInProgress']:
