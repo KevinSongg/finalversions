@@ -6,7 +6,6 @@ import signal
 import math
 import random
 from unicodedata import bidirectional
-from msilib import Binary
 
 # include the netbot src directory in sys.path so we can import modules from it.
 robotpath = os.path.dirname(os.path.abspath(__file__))
@@ -37,10 +36,7 @@ def play(botSocket, srvConf):
             log(str(e), "FAILURE")
             log("Is netbot server still running?")
             quit()
-        if tempGetInfoReply['health'] > getInfoReply['health']:
-            moveDirection = random.uniform(0,math.pi * 2)
-            botSocket.sendRecvMessage({'type': 'setDirectionRequest', 'requestedDirection': moveDirection})
-            botSocket.sendRecvMessage({'type': 'setSpeedRequest', 'requestedSpeed': 30})
+       
         if getInfoReply['health'] == 0:
             # we are dead, there is nothing we can do until we are alive again.
             continue
@@ -48,10 +44,14 @@ def play(botSocket, srvConf):
         if getInfoReply['gameNumber'] != gameNumber:
             # A new game has started. Record new gameNumber and reset any variables back to their initial state
             gameNumber = getInfoReply['gameNumber']
-            log("Game " + str(gameNumber) + " has started. Points so far = " + str(getInfoReply['points']))
+          
 
         currentMode = "wait"   
         try:
+            if tempGetInfoReply['health'] > getInfoReply['health']:
+                moveDirection = random.uniform(0,math.pi * 2)
+                botSocket.sendRecvMessage({'type': 'setDirectionRequest', 'requestedDirection': moveDirection})
+                botSocket.sendRecvMessage({'type': 'setSpeedRequest', 'requestedSpeed': 30})
             tempGetInfoReply = botSocket.sendRecvMessage({'type': 'getInfoRequest'})
             if currentMode == "wait":
                 getCanonReply = botSocket.sendRecvMessage({'type':'getCanonRequest'})
@@ -64,7 +64,6 @@ def play(botSocket, srvConf):
             # Consider this a warning here. It may simply be that a request returned
             # an Error reply because our health == 0 since we last checked. We can
             # continue until the next game starts.
-            log(str(e), "WARNING")
             continue
 
 ##################################################################
