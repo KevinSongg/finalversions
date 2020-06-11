@@ -6,6 +6,7 @@ import signal
 import math
 import random
 from unicodedata import bidirectional
+from tkinter.constants import CURRENT
 
 # include the netbot src directory in sys.path so we can import modules from it.
 robotpath = os.path.dirname(os.path.abspath(__file__))
@@ -24,9 +25,12 @@ robotName = "KevinBestBot"
 def play(botSocket, srvConf):
     gameNumber = 0  # The last game number bot got from the server (0 == no game has been started)
     tempGetInfoReply = botSocket.sendRecvMessage({'type': 'getInfoRequest'})
+    
     while True:
        
         try:
+            
+
             
             # Get information to determine if bot is alive (health > 0) and if a new game has started.
             getInfoReply = botSocket.sendRecvMessage({'type': 'getInfoRequest'})
@@ -44,15 +48,83 @@ def play(botSocket, srvConf):
         if getInfoReply['gameNumber'] != gameNumber:
             # A new game has started. Record new gameNumber and reset any variables back to their initial state
             gameNumber = getInfoReply['gameNumber']
-          
+        
+        currentMode = "start"
+        turnDistance = srvConf['arenaSize'] / 5
+        # The last direction we requested to go in.
+        requestedDirection = None
 
-        currentMode = "wait"   
+        
+             
         try:
-            if tempGetInfoReply['health'] > getInfoReply['health']:
-                moveDirection = random.uniform(0,math.pi * 2)
-                botSocket.sendRecvMessage({'type': 'setDirectionRequest', 'requestedDirection': moveDirection})
-                botSocket.sendRecvMessage({'type': 'setSpeedRequest', 'requestedSpeed': 30})
-            tempGetInfoReply = botSocket.sendRecvMessage({'type': 'getInfoRequest'})
+            getLocationReply = botSocket.sendRecvMessage({'type': 'getLocationRequest'})
+            if currentMode == "start":  # this will only be run once per game.
+                # Find out which wall we are closest to and set best mode from that
+                choices = [
+                    ('left', getLocationReply['x']),  # distance to left wall
+                    ('bottom', getLocationReply['y']),  # distance to bottom wall
+                    ('right', srvConf['arenaSize'] - getLocationReply['x']),  # distance to right wall
+                    ('top', srvConf['arenaSize'] - getLocationReply['y'])  # distance to top wall
+                    ]
+
+                pickMode = choices[0][0]
+                pickDistance = choices[0][1]
+                for i in range(1, len(choices)):
+                    if choices[i][1] < pickDistance:
+                        pickMode = choices[i][0]
+                        pickDistance = choices[i][1]
+
+                currentMode = pickMode
+                log("Mode set to " +
+                    currentMode +
+                    " based on x = " +
+                    str(getLocationReply['x']) +
+                    ", y = " +
+                    str(getLocationReply['y']), "VERBOSE")
+
+            # If we are too close to the wall we are moving towards to then switch mode so we turn.
+            if currentMode == "left" and getLocationReply['y'] < turnDistance:
+                # Moving along left wall and about to hit bottom wall.
+                currentMode = "bottom"
+                log("Mode set to " + currentMode + " based on y = " + str(getLocationReply['y']), "VERBOSE")
+            elif currentMode == "bottom" and getLocationReply['x'] > srvConf['arenaSize'] - turnDistance:
+                # Moving along bottom wall and about to hit right wall.
+                currentMode = "right"
+                log("Mode set to " + currentMode + " based on x = " + str(getLocationReply['x']), "VERBOSE")
+            elif currentMode == "right" and getLocationReply['y'] > srvConf['arenaSize'] - turnDistance:
+                # Moving along right wall and about to hit top wall.
+                currentMode = "top"
+                log("Mode set to " + currentMode + " based on y = " + str(getLocationReply['y']), "VERBOSE")
+            elif currentMode == "top" and getLocationReply['x'] < turnDistance:
+                # Moving along top wall and about to hit left wall.
+                currentMode = "left"
+                log("Mode set to " + currentMode + " based on x = " + str(getLocationReply['x']), "VERBOSE")
+
+            if currentMode == "left":
+                # closet to left wall so go down (counter clockwise around arena)
+                newDirection = math.pi * 1.5
+            elif currentMode == "bottom":
+                # closet to bottom wall so go right (counter clockwise around arena)
+                newDirection = 0
+            elif currentMode == "right":
+                # closet to right wall so go up (counter clockwise around arena)
+                newDirection = math.pi * 0.5
+            elif currentMode == "top":
+                # closet to top wall so go left (counter clockwise around arena)
+                newDirection = math.pi
+
+            if newDirection != requestedDirection:
+                # Turn in a new direction
+                botSocket.sendRecvMessage({'type': 'setDirectionRequest', 'requestedDirection': newDirection})
+                requestedDirection = newDirection
+            botSocket.sendRecvMessage({'type': 'setSpeedRequest', 'requestedSpeed': 50})
+           
+            #if tempGetInfoReply['health'] > getInfoReply['health']:
+                #moveDirection = random.uniform(0,math.pi * 2)
+                #botSocket.sendRecvMessage({'type': 'setDirectionRequest', 'requestedDirection': moveDirection})
+                #botSocket.sendRecvMessage({'type': 'setSpeedRequest', 'requestedSpeed': 30})
+            #tempGetInfoReply = botSocket.sendRecvMessage({'type': 'getInfoRequest'})
+            currentMode = "wait"  
             if currentMode == "wait":
                 getCanonReply = botSocket.sendRecvMessage({'type':'getCanonRequest'})
                 if not getCanonReply['shellInProgress']:
