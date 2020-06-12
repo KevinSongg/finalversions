@@ -6,7 +6,6 @@ import signal
 import math
 import random
 from unicodedata import bidirectional
-from tkinter.constants import CURRENT
 
 # include the netbot src directory in sys.path so we can import modules from it.
 robotpath = os.path.dirname(os.path.abspath(__file__))
