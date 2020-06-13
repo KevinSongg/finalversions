@@ -23,30 +23,10 @@ robotName = "KevinBestBot"
 
 def play(botSocket, srvConf):
     gameNumber = 0  # The last game number bot got from the server (0 == no game has been started)
-    tempGetInfoReply = botSocket.sendRecvMessage({'type': 'getInfoRequest'})
     
     while True:
        
-        try:
-            
-
-            
-            # Get information to determine if bot is alive (health > 0) and if a new game has started.
-            getInfoReply = botSocket.sendRecvMessage({'type': 'getInfoRequest'})
-            
-        except nbipc.NetBotSocketException as e:
-            # We are always allowed to make getInfoRequests, even if our health == 0. Something serious has gone wrong.
-            log(str(e), "FAILURE")
-            log("Is netbot server still running?")
-            quit()
        
-        if getInfoReply['health'] == 0:
-            # we are dead, there is nothing we can do until we are alive again.
-            continue
-        
-        if getInfoReply['gameNumber'] != gameNumber:
-            # A new game has started. Record new gameNumber and reset any variables back to their initial state
-            gameNumber = getInfoReply['gameNumber']
         
         currentMode = "start"
         turnDistance = srvConf['arenaSize'] / 5
