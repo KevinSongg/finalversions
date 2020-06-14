@@ -9,8 +9,8 @@ from unicodedata import bidirectional
 
 # include the netbot src directory in sys.path so we can import modules from it.
 robotpath = os.path.dirname(os.path.abspath(__file__))
-srcpath = os.path.join(os.path.dirname(robotpath),"src") 
-sys.path.insert(0,srcpath)
+srcpath = os.path.join(os.path.dirname(robotpath), "src") 
+sys.path.insert(0, srcpath)
 
 from netbots_log import log
 from netbots_log import setLogLevel
@@ -20,21 +20,16 @@ import netbots_math as nbmath
 robotName = "KevinBestBot"
 
 
-
 def play(botSocket, srvConf):
     gameNumber = 0  # The last game number bot got from the server (0 == no game has been started)
     
     while True:
-       
-       
         
         currentMode = "start"
         turnDistance = srvConf['arenaSize'] / 5
         # The last direction we requested to go in.
         requestedDirection = None
 
-        
-             
         try:
             getLocationReply = botSocket.sendRecvMessage({'type': 'getLocationRequest'})
             if currentMode == "start":  # this will only be run once per game.
@@ -54,11 +49,11 @@ def play(botSocket, srvConf):
                         pickDistance = choices[i][1]
 
                 currentMode = pickMode
-                log("Mode set to " +
-                    currentMode +
-                    " based on x = " +
-                    str(getLocationReply['x']) +
-                    ", y = " +
+                log("Mode set to " + 
+                    currentMode + 
+                    " based on x = " + 
+                    str(getLocationReply['x']) + 
+                    ", y = " + 
                     str(getLocationReply['y']), "VERBOSE")
 
             # If we are too close to the wall we are moving towards to then switch mode so we turn.
@@ -98,18 +93,13 @@ def play(botSocket, srvConf):
                 requestedDirection = newDirection
             botSocket.sendRecvMessage({'type': 'setSpeedRequest', 'requestedSpeed': 50})
            
-            #if tempGetInfoReply['health'] > getInfoReply['health']:
-                #moveDirection = random.uniform(0,math.pi * 2)
-                #botSocket.sendRecvMessage({'type': 'setDirectionRequest', 'requestedDirection': moveDirection})
-                #botSocket.sendRecvMessage({'type': 'setSpeedRequest', 'requestedSpeed': 30})
-            #tempGetInfoReply = botSocket.sendRecvMessage({'type': 'getInfoRequest'})
             currentMode = "wait"  
             if currentMode == "wait":
                 getCanonReply = botSocket.sendRecvMessage({'type':'getCanonRequest'})
                 if not getCanonReply['shellInProgress']:
                     currentMode = "scan"
             if currentMode == "scan":
-                binarySnipe(0,128)
+                binarySnipe(0, 128)
             
         except nbipc.NetBotSocketException as e:
             # Consider this a warning here. It may simply be that a request returned
@@ -121,28 +111,30 @@ def play(botSocket, srvConf):
 # Standard stuff below.
 ##################################################################
 
-def binarySnipe(length,radius):
-    if radius>=length:
+
+def binarySnipe(length, radius):
+    if radius >= length:
         global currentMode
         global distance    
        
-        mid = length + (radius-length)/2
-        if (mid <= length+1):
-            firedirection = ((((mid + length) /2) /128) *2 *math.pi)
+        mid = length + (radius - length) / 2
+        if (mid <= length + 1):
+            firedirection = ((((mid + length) / 2) / 128) * 2 * math.pi)
             currentMode = "wait"
-            botSocket.sendRecvMessage({'type':'fireCanonRequest','direction': firedirection,'distance' : distance})
+            botSocket.sendRecvMessage({'type':'fireCanonRequest', 'direction': firedirection, 'distance' : distance})
         elif (mid >= radius - 1):
-            firedirection = ((((mid + radius) /2) /128) *2 *math.pi)
+            firedirection = ((((mid + radius) / 2) / 128) * 2 * math.pi)
             currentMode = "wait"
-            botSocket.sendRecvMessage({'type':'fireCanonRequest','direction': firedirection,'distance' : distance})
-        scanReply = botSocket.sendRecvMessage({'type':'scanRequest','startRadians':(length/128)*2*math.pi,'endRadians':(mid/128)*2*math.pi})
+            botSocket.sendRecvMessage({'type':'fireCanonRequest', 'direction': firedirection, 'distance' : distance})
+        scanReply = botSocket.sendRecvMessage({'type':'scanRequest', 'startRadians':(length / 128) * 2 * math.pi, 'endRadians':(mid / 128) * 2 * math.pi})
         if(scanReply['distance'] != 0):
             distance = scanReply['distance']
-            return binarySnipe(length, mid-1)
+            return binarySnipe(length, mid - 1)
         else:
-            return binarySnipe(mid+1, radius)
+            return binarySnipe(mid + 1, radius)
     else: 
         return -1
+
     
 def quit(signal=None, frame=None):
     global botSocket
