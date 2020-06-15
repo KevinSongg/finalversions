@@ -17,20 +17,22 @@ from netbots_log import setLogLevel
 import netbots_ipc as nbipc
 import netbots_math as nbmath
 
-robotName = "KevinBestBot"
+robotName = "KevinBestBotNew"
 
 
 def play(botSocket, srvConf):
     gameNumber = 0  # The last game number bot got from the server (0 == no game has been started)
-    
+    counter = 0;
     while True:
-        
+       
         currentMode = "start"
         turnDistance = srvConf['arenaSize'] / 5
         # The last direction we requested to go in.
         requestedDirection = None
-
+    
         try:
+
+            counter += 1;
             getLocationReply = botSocket.sendRecvMessage({'type': 'getLocationRequest'})
             if currentMode == "start":  # this will only be run once per game.
                 # Find out which wall we are closest to and set best mode from that
@@ -91,7 +93,9 @@ def play(botSocket, srvConf):
                 # Turn in a new direction
                 botSocket.sendRecvMessage({'type': 'setDirectionRequest', 'requestedDirection': newDirection})
                 requestedDirection = newDirection
-            botSocket.sendRecvMessage({'type': 'setSpeedRequest', 'requestedSpeed': 50})
+                
+            if counter % 10 == 0:
+                botSocket.sendRecvMessage({'type': 'setSpeedRequest', 'requestedSpeed': 50})
            
             currentMode = "wait"  
             if currentMode == "wait":
